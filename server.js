@@ -99,103 +99,141 @@ const addDepartment=()=>{
                 message:"What is the name of the department?"
                
             }
-
         ]
         ).then((answer)=>{
         let sql = `INSERT INTO departments (departments_name) VALUES ("${answer.firstName}")` 
         db.query(sql, answer.firstName, function (err,results){
             console.log(results);
             viewAllDepartments();
-        })
-    })
+        });
+    });
     
     promptUser();
 }
 
 const addRole=()=>{
-    
-    let arr=[];
-    let sql ='SELECT departments.id,departments_name FROM departments ORDER BY departments_name ASC';
-    db.query(sql, function(err,results){
-        console.log(results);
-    }).then((departments)=>{
-        for(i=0;i<departments.length;i++){
-            arr.push(departments[i].name);
-        }
-        return departments;
-    }).then((departments)=>{
-        inquirer.prompt(
-            [
-                {
-                    type: "input",
-                    name: "roleT",
-                    message:"What is the title of the role?"
-                },
-                {
-                    type: "input",
-                    name: "roleS",
-                    message:"What is the salary of the role?"
-                },
-                {
-                    type: "list",
-                    name: "departments",
-                    message:"Departments",
-                    choices: arr
-                }
-    
-            ]
-        ).then((answer)=>{
-            let departmentid;
-            for(i=0;i<departments.length;i++){
-                departmentid=departments[i].id;
-            }
-            let sql = `INSERT INTO roles (title, salary, department_id) VALUES ("${answer.roleT}", "${answer.roleS}", "${departmentid})`;
-            db.query(sql, answer.firstName, function (err,results){
-                console.log(results);
-            })
-            promptUser();
-
-        })
-    })
-
-
-
-    inquirer.prompt(
-        [
+    const sql=`SELECT * FROM departments`
+    db.query(sql, (err, results)=>{
+        let departmentsA=[];
+        results.forEach((departments)=>{departmentsA.push(departments.departments_name);});
+        departmentsA.push("newDepartment");
+        inquirer.prompt([
             {
-                type: "input",
-                name: "roleT",
-                message:"What is the title of the role?"
-            },
-            {
-                type: "input",
-                name: "roleS",
-                message:"What is the salary of the role?"
-            },
-            {
+                name: "DepatmentN",
                 type: "list",
-                name: "departments",
-                message:"Departments",
-                choices: arr
+                message: "What role would the new department be in?",
+                choices: departmentsA
             }
+        ]).then((answer)=>{
+            if(answer.DepartmentN==="newDepartment"){
+                this.addDepartment();
+            }else{addNewRole(answer)
+            }
+        });
+        const addNewRole=(departmentInfo)=>{
+            insquirer.prompt([
+                {
+                    name: "newR",
+                    type: "input",
+                    message: "What is the name of the new role?"
+                },
+                {
+                    name: "Salary",
+                    type: "input",
+                    message: "What is the salary of the new role?"
+                },
+            ]).then((answer)=>{
+                let newrole=answer.newR;
+                let department;
 
-        ]
-    ).then((answer)=>{
-        let sql = `INSERT INTO departments(departments_name)VALUES (?)`;
-        db.query(sql, function (err,results){
-            console.log(results);
-        })
+                results.forEach((departments)=>{
+                    if (departmentInfo.DepartmentN===departments.departments_name){department=department.id}
+                });
+                let sql =`INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?) `;
+                let create=[newrole,answer.salary,department];
+                db.query(sql, create, (err)=>{
+                    viewAllRoles();
+                })
+            })
+        }
     })
     promptUser();
+};    
+
+const addEmployee=()=>{
+
+    inquirer.prompt([{
+        type: "input",
+        name: "firstName",
+        message: "What is the emaplloyees first name?",
+        validate: firstName=>{
+            if(firstName){
+                return true;
+            } else {return false;}
+        }
+    },
+    {
+        type:"input",
+        name: "lastName",
+        message:"What is the employees last name?",
+        validate: lastName=>{
+            if(lastName){
+                return true;
+            } else{return false;}
+        }
+    }]).then ((answer)=>{
+    const response=[answer.firstName, answer.lastName]
+    let sql=`SELECT roles.id, roles.title FROM roles`;
+    db.query(sql, (err, data)=>{
+        const roles=data.map(({id,title})=>({name:title , value: id}));
+        inquirer.prompt([
+            {
+                type:"list",
+                name:"role",
+                message:"what is the role of the emeployee?",
+                choices: roles
+            }
+        ]).then (roleOptions=>{
+            const role= roleOptions.role;
+            response.push(role);
+            const managerS = `SELECT * FROM employees`;
+            db.query(managerS, (err, data)=>{
+                const managers=data.map(({id, first_name, last_name})=>({name: first_name + " " + last_name, value: id}));
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "manager",
+                        message: "who is the employes manager?",
+                        choices: managers
+                    }
+                ])
+                .then(managerOption=>{
+                    const manager= managerOption.manager;
+                    response.push(manager);
+                    const sql=`INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
+                    db.query(sql, response, (err)=>{
+                        viewAllEmployee();
+                    })
+                })
+            
+            }
+
+        )})
+    })
+})
 };
- 
 
-const updateEmployeeRole=()=>{
-
-    let employeesA=[];
-    let roleA=[];
-
+const updateEmployeeRole= () =>{
+    let employeeA=[];
+    let role=[];
     
+    let sql=`SELECT employees.id, employees.first_name, employees.last_name, roles.id AS "roles_id" FROM employees, roles, departments WHERE departments.id = roles.department_id AND roles.id = employees.role_id`
+    db.query=(sql, (err, result)=>{
+        let nameA=[];
+        db.forEach((emplloyee)=>{nameA.push(`${employees.first_name} ${employees.last_name}`);});
+
+
+    })
 }
 
 app.listen(PORT, () => {
